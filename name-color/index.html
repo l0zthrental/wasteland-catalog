@@ -15,16 +15,18 @@
     <section class="editor" aria-label="Name color editor">
       <div class="label-row"><label for="name">Name</label><div class="history"><button id="undo" class="icon-button" disabled aria-label="Undo" title="Undo">↶</button><button id="redo" class="icon-button" disabled aria-label="Redo" title="Redo">↷</button></div></div>
       <textarea id="name" rows="2" maxlength="2000" spellcheck="false" placeholder="Your item name…" aria-describedby="name-help"></textarea>
-      <div class="toolbar"><span id="name-help">Select letters to color them.</span><div><button id="select-all" class="text-button">Select all</button><button id="open-colors" class="color-button" aria-expanded="false" aria-controls="color-menu"><i id="active-color"></i> Color</button></div></div>
+      <div class="toolbar"><span id="name-help">Select letters to color them.</span><div><button id="select-all" class="text-button">Select all</button><button id="open-colors" class="color-button" aria-expanded="false" aria-controls="color-menu"><i id="active-color"></i> Palette</button></div></div>
       <div class="preview-row"><span class="small-label">Preview</span><div id="preview" aria-label="Colored name preview"></div></div>
       <div class="actions"><span id="selection-info" aria-live="polite"></span><button id="copy" class="button primary">Copy name <span aria-hidden="true">↗</span></button></div>
     </section>
     <div id="copy-fallback" hidden><label for="fallback-output">Copy this name manually</label><textarea id="fallback-output" readonly rows="2"></textarea></div>
   </main>
-  <section id="color-menu" class="color-menu" role="dialog" aria-label="Selection colors" hidden>
-    <div class="menu-heading"><span>Selection color</span><button id="close-colors" class="icon-button" aria-label="Close color menu">×</button></div>
+  <section id="color-menu" class="color-menu" role="dialog" aria-label="Color palette editor" hidden>
+    <div class="menu-heading"><span>Palette</span><button id="close-colors" class="icon-button" aria-label="Close color menu">×</button></div>
     <div id="palette" class="palette" role="group" aria-label="Color palette"></div>
     <div class="custom-color"><input id="color" type="color" value="#ff9700" aria-label="Custom color"><label for="hex" class="sr-only">Hex color</label><input id="hex" type="text" value="#FF9700FF" maxlength="9" spellcheck="false" aria-label="Hex color"><button id="apply" class="button">Apply</button></div>
+    <div class="palette-tools"><button id="save-color" class="text-button">Save color</button><button id="edit-palette" class="text-button" aria-pressed="false">Edit palette</button></div>
+    <div id="palette-edit" class="palette-tools" hidden><button id="update-swatch" class="button" disabled>Update selected</button><button id="delete-swatch" class="text-button" disabled>Delete selected</button></div>
     <details><summary>Opacity & gradients</summary><div class="opacity-row"><label for="opacity">Opacity</label><input id="opacity" type="range" min="0" max="100" value="100"><output id="opacity-value">100%</output></div><div class="gradients"><button data-gradient="sunset">Sunset</button><button data-gradient="aurora">Aurora</button><button data-gradient="ice">Ice</button></div></details>
     <button id="remove-color" class="text-button remove">Remove color</button>
   </section>

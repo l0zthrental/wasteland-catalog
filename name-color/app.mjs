@@ -1,7 +1,13 @@
 import {MAX_LENGTH, normalizeColor, parse, plain, serialize, selectedRange, replaceText, paint, gradient} from './model.mjs';
 
 const $ = id => document.getElementById(id);
-const palette = [['#F1F1E8','Chalk'],['#C6ED85','Lime'],['#65D694','Mint'],['#70D9D1','Teal'],['#75BDF8','Sky'],['#A99CFA','Lilac'],['#ED92CB','Pink'],['#FF817E','Coral'],['#FF9700','Orange'],['#F5D879','Gold']];
+const defaultPalette = [['#F1F1E8','Chalk'],['#C6ED85','Lime'],['#65D694','Mint'],['#70D9D1','Teal'],['#75BDF8','Sky'],['#A99CFA','Lilac'],['#ED92CB','Pink'],['#FF817E','Coral'],['#FF9700','Orange'],['#F5D879','Gold']];
+const paletteKey = 'wasteland-name-palette-v1';
+let palette = defaultPalette.map(([color]) => color+'FF'), editingPalette = false, selectedSwatch = -1;
+try {
+  const saved = JSON.parse(localStorage.getItem(paletteKey));
+  if (Array.isArray(saved) && saved.length <= 24 && saved.every(color => typeof color === 'string' && normalizeColor(color))) palette = saved.map(normalizeColor);
+} catch { /* Invalid or unavailable storage falls back to the default palette. */ }
 const storageKey = 'wasteland-name-painter-v1';
 let chars = parse('<color=#FF9700FF>Blessed</color> AK-74 Rifle [Reaper Squad]');
 let range = [0,0], currentColor = '#FF9700FF', history = [], future = [], beforeEdit = null;
@@ -44,7 +50,7 @@ function positionMenu() {
   menu.style.top = Math.max(topEdge+12,Math.min(top,topEdge+height-menu.offsetHeight-12))+'px';
 }
 function showColors(point = null, explicit = false) {
-  if (range[1] <= range[0] || (!explicit && dismissed === rangeKey())) return;
+  if (!explicit && (range[1] <= range[0] || dismissed === rangeKey())) return;
   if (explicit) dismissed = '';
   menuPoint = point;
   $('color-menu').hidden = false;
@@ -54,8 +60,7 @@ function showColors(point = null, explicit = false) {
 function updateSelection() {
   const selected = range[1]-range[0];
   $('selection-info').textContent = selected ? `${selected} selected` : '';
-  $('open-colors').disabled = $('apply').disabled = $('remove-color').disabled = !selected;
-  for (const button of document.querySelectorAll('[data-gradient]')) button.disabled = !selected;
+  updatePaletteTools();
   if (!selected) hideColors();
 }
 function render({textChanged = false} = {}) {
@@ -83,24 +88,76 @@ function syncColor(color) {
   const opacity = Math.round(parseInt(color.slice(7,9),16)/255*100);
   $('opacity').value = opacity;
   $('opacity-value').textContent = opacity+'%';
-  for (const button of $('palette').children) button.setAttribute('aria-pressed',String(button.dataset.color === color));
+  for (const [index,button] of Array.from($('palette').children).entries()) button.setAttribute('aria-pressed',String(editingPalette ? index === selectedSwatch : button.dataset.color === color));
 }
 function applyColor(color) {
-  if (range[1] <= range[0]) return;
+  if (editingPalette || range[1] <= range[0]) return;
   remember();
   chars = paint(chars,...range,color);
   render(); save();
 }
-for (const [color,label] of palette) {
-  const button = document.createElement('button');
-  button.className = 'swatch';
-  button.style.setProperty('--swatch',color);
-  button.dataset.color = color+'FF';
-  button.title = `${label} ${color}`;
-  button.setAttribute('aria-label',`${label} ${color}`);
-  button.addEventListener('click',() => { syncColor(color+'FF'); applyColor(currentColor); });
-  $('palette').append(button);
+function renderPalette() {
+  $('palette').replaceChildren();
+  palette.forEach((color,index) => {
+    const label = defaultPalette.find(([value]) => value+'FF' === color)?.[1] || 'Custom';
+    const button = document.createElement('button');
+    button.className = 'swatch';
+    button.style.setProperty('--swatch',color);
+    button.dataset.color = color;
+    button.title = `${label} ${color}`;
+    button.setAttribute('aria-label',`${label} ${color}`);
+    button.addEventListener('click',() => {
+      selectedSwatch = index;
+      syncColor(color);
+      if (!editingPalette) applyColor(color);
+      updatePaletteTools();
+    });
+    $('palette').append(button);
+  });
+  syncColor(currentColor);
+  updatePaletteTools();
+  if (!$('color-menu').hidden) positionMenu();
 }
+function updatePaletteTools() {
+  $('edit-palette').setAttribute('aria-pressed',String(editingPalette));
+  $('edit-palette').textContent = editingPalette ? 'Done' : 'Edit palette';
+  $('palette-edit').hidden = !editingPalette;
+  $('update-swatch').disabled = $('delete-swatch').disabled = selectedSwatch < 0;
+  const noPaint = editingPalette || range[1] <= range[0];
+  $('apply').disabled = $('remove-color').disabled = noPaint;
+  for (const button of document.querySelectorAll('[data-gradient]')) button.disabled = noPaint;
+}
+function persistPalette() {
+  try { localStorage.setItem(paletteKey,JSON.stringify(palette)); }
+  catch { status('Palette storage is unavailable. Changes last for this visit only.',true); }
+  renderPalette();
+}
+function colorFromHex() {
+  const color = normalizeColor($('hex').value);
+  if (!color) { $('hex').setAttribute('aria-invalid','true'); status('Use six or eight hex digits, e.g. #FF9700FF.',true); }
+  return color;
+}
+$('save-color').addEventListener('click',() => {
+  const color = colorFromHex();
+  if (!color) return;
+  if (palette.includes(color)) { selectedSwatch = palette.indexOf(color); syncColor(color); updatePaletteTools(); return; }
+  if (palette.length >= 24) { status('Palette is full. Delete a swatch before adding another.',true); return; }
+  palette.push(color); selectedSwatch = palette.length-1; syncColor(color); persistPalette();
+});
+$('edit-palette').addEventListener('click',() => {
+  editingPalette = !editingPalette;
+  selectedSwatch = palette.indexOf(currentColor);
+  renderPalette();
+});
+$('update-swatch').addEventListener('click',() => {
+  const color = colorFromHex();
+  if (!color || selectedSwatch < 0) return;
+  palette[selectedSwatch] = color; syncColor(color); persistPalette();
+});
+$('delete-swatch').addEventListener('click',() => {
+  if (selectedSwatch < 0) return;
+  palette.splice(selectedSwatch,1); selectedSwatch = -1; persistPalette();
+});
 function captureSelection(show = true) {
   if (document.activeElement !== $('name') || composing) return;
   const next = selectedRange(chars,$('name').selectionStart,$('name').selectionEnd);
@@ -194,8 +251,8 @@ $('opacity').addEventListener('input',() => {
 });
 $('opacity').addEventListener('change',() => applyColor(currentColor));
 function applyHex() {
-  const color = normalizeColor($('hex').value);
-  if (!color) { $('hex').setAttribute('aria-invalid','true'); status('Use six or eight hex digits, e.g. #FF9700FF.',true); return; }
+  const color = colorFromHex();
+  if (!color) return;
   syncColor(color); applyColor(color);
 }
 $('apply').addEventListener('click',applyHex);
@@ -203,7 +260,7 @@ $('hex').addEventListener('keydown',event => { if (event.key === 'Enter') applyH
 $('remove-color').addEventListener('click',() => applyColor(null));
 const gradients = {sunset:['#FFB64E','#F16BB1'],aurora:['#69DDAB','#AB88FF'],ice:['#79E9E1','#75A3FF']};
 for (const button of document.querySelectorAll('[data-gradient]')) button.addEventListener('click',() => {
-  if (range[1] <= range[0]) return;
+  if (editingPalette || range[1] <= range[0]) return;
   remember(); chars = gradient(chars,...range,...gradients[button.dataset.gradient]); render(); save();
 });
 function travel(source,destination) {
@@ -230,5 +287,5 @@ $('copy').addEventListener('click',async () => {
     status('Copy the selected name manually.');
   }
 });
-syncColor(currentColor);
+renderPalette();
 render({textChanged:true});

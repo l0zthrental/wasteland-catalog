@@ -1,6 +1,8 @@
 # Name Painter
 
-A minimal static Wasteland Story display-name color editor. Select letters in the name field to open a floating palette, or right-click an existing selection. Choose a palette color, custom hex color, opacity, or gradient. A compact preview shows the result. **Copy name** copies the generated `<color=#RRGGBBAA>…</color>` markup for **Item display name / CurrentName** in your save editor. Keep the exact item ID unchanged.
+A minimal static Wasteland Story display-name color editor, linked from the catalog's **Name color editor** button. Select letters in the name field to open a floating palette, or click **Palette** at any time. Choose a palette color, custom hex color, opacity, or gradient. A compact preview shows the result. **Copy name** copies the generated `<color=#RRGGBBAA>…</color>` markup for **Item display name / CurrentName** in your save editor. Keep the exact item ID unchanged.
+
+To customize the palette, pick a color or enter a hex value and click **Save color**. To change a swatch, click **Edit palette**, select a swatch, choose its new color, and click **Update selected**. **Delete selected** removes it; **Done** returns to applying colors. Up to 24 swatches, including alpha, are stored locally in this browser. Palette edits do not recolor the name. Select text and click a swatch or **Apply** to recolor it.
 
 Existing six- and eight-digit hex color tags can be pasted directly into the name field, including nested tags. Editing preserves colors on surrounding characters. Undo, redo, and browser-local draft storage are included. Escape or clicking outside closes the palette. The preview approximates colors; it does not run the game or verify game-side restrictions. No saves, accounts, or credentials are read or uploaded. There are no external dependencies or network requests from the editor.
 
@@ -12,7 +14,7 @@ From this directory:
 python -m http.server 8765 --bind 127.0.0.1
 ```
 
-Open http://127.0.0.1:8765. No build or package installation is required. Google Fonts is optional; system fonts are used when unavailable.
+Open http://127.0.0.1:8765. No build or package installation is required.
 
 ## GitHub Pages
 
